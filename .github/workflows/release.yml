@@ -1,90 +1,37 @@
-name: Release NexusTunnel Binaries
+name: Build and Release Nexus-Tunnel v7.0
 
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build Multi-Arch Binaries
+  release:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            output: nexus_linux_amd64
-            archive: nexus_linux_amd64.tar.gz
-          - goos: linux
-            goarch: arm64
-            output: nexus_linux_arm64
-            archive: nexus_linux_arm64.tar.gz
-          - goos: darwin
-            goarch: amd64
-            output: nexus_darwin_amd64
-            archive: nexus_darwin_amd64.tar.gz
-          - goos: darwin
-            goarch: arm64
-            output: nexus_darwin_arm64
-            archive: nexus_darwin_arm64.tar.gz
-          - goos: windows
-            goarch: amd64
-            output: nexus_windows_amd64.exe
-            archive: nexus_windows_amd64.zip
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Go
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          check-latest: true
 
-      - name: Compile Binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
+      - name: Build Binaries (amd64 & arm64)
         run: |
-          go build -v -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o ${{ matrix.output }} cmd/nexus/main.go
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            zip ${{ matrix.archive }} ${{ matrix.output }}
-          else
-            tar -czvf ${{ matrix.archive }} ${{ matrix.output }}
-          fi
+          make build-amd64
+          make build-arm64
+          sha256sum nexus-tunnel-linux-* > checksums.txt
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.archive }}
-          path: ${{ matrix.archive }}
-
-  release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release_assets
-          merge-multiple: true
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
-          files: release_assets/*
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+          files: |
+            nexus-tunnel-linux-amd64
+            nexus-tunnel-linux-arm64
+            checksums.txt
