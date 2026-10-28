@@ -1,0 +1,16 @@
+# Binaries & archives
+*.zip
+*.tar.gz
+*.exe
+*.bin
+
+# Temporary & logs
+*.log
+/tmp/
+/var/log/
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db
