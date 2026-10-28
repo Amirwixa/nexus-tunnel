@@ -1,30 +1,22 @@
-BINARY_NAME=nexus
-VERSION=3.5.0
-BUILD_DIR=build
+BINARY_NAME=nexus-tunnel
+MAIN_PATH=./cmd/nexus/main.go
+LDFLAGS=-s -w
 
-.PHONY: all build clean release test
+.PHONY: all build build-amd64 build-arm64 clean install
 
 all: build
 
 build:
-	@echo "Building NexusTunnel for current platform..."
-	go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BINARY_NAME) cmd/nexus/main.go
+	CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="$(LDFLAGS)" -o $(BINARY_NAME) $(MAIN_PATH)
 
-release: clean
-	@echo "Cross-compiling release binaries..."
-	@mkdir -p $(BUILD_DIR)
-	# Linux AMD64
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BUILD_DIR)/nexus_linux_amd64 cmd/nexus/main.go
-	tar -czf $(BUILD_DIR)/nexus_linux_amd64.tar.gz -C $(BUILD_DIR) nexus_linux_amd64
-	# Linux ARM64
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BUILD_DIR)/nexus_linux_arm64 cmd/nexus/main.go
-	tar -czf $(BUILD_DIR)/nexus_linux_arm64.tar.gz -C $(BUILD_DIR) nexus_linux_arm64
-	# macOS AMD64 & ARM64
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BUILD_DIR)/nexus_darwin_amd64 cmd/nexus/main.go
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BUILD_DIR)/nexus_darwin_arm64 cmd/nexus/main.go
-	# Windows AMD64
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BUILD_DIR)/nexus_windows_amd64.exe cmd/nexus/main.go
-	@echo "Release builds completed in $(BUILD_DIR)/"
+build-amd64:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="$(LDFLAGS)" -o $(BINARY_NAME)-linux-amd64 $(MAIN_PATH)
+
+build-arm64:
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="$(LDFLAGS)" -o $(BINARY_NAME)-linux-arm64 $(MAIN_PATH)
+
+install:
+	bash ./install.sh
 
 clean:
-	@rm -rf $(BUILD_DIR) $(BINARY_NAME)
+	rm -f $(BINARY_NAME) $(BINARY_NAME)-linux-*
