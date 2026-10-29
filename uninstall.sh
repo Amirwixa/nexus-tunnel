@@ -9,13 +9,13 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}[✘] لطفاً با دسترسی root اجرا کنید (sudo bash uninstall.sh).${NC}"
+   echo -e "${RED}[✘] Error: Please run as root (sudo bash uninstall.sh).${NC}"
    exit 1
 fi
 
-echo -e "${YELLOW}[*] در حال توقف تمام پروفایل‌های تانل و پاکسازی کامل شبکه...${NC}"
+echo -e "${YELLOW}[*] Stopping all tunnel instances and cleaning network rules...${NC}"
 
-# ۱. توقف و غیرفعال‌سازی تمام سرویس‌های nexus-tunnel@
+# 1. Stop and disable all nexus-tunnel@ instances
 for f in /etc/nexus-tunnel/*.json; do
     [[ ! -e "$f" ]] && continue
     name=$(basename "$f" .json)
@@ -25,7 +25,7 @@ done
 systemctl stop "nexus-tunnel@*" 2>/dev/null || true
 systemctl stop nexus-tunnel.service 2>/dev/null || true
 
-# ۲. حذف اینترفیس‌های لایه ۳ کرنل و قوانین فایروال
+# 2. Remove L3 kernel interfaces and clear firewall rules
 for ifc in nx-gre nx-ipip nx-sit nx-vxlan; do
     ip link del "$ifc" 2>/dev/null || true
 done
@@ -34,7 +34,7 @@ iptables -t nat -F POSTROUTING 2>/dev/null || true
 iptables -t mangle -F FORWARD 2>/dev/null || true
 iptables -t raw -F 2>/dev/null || true
 
-# ۳. حذف فایل‌ها و دایرکتوری‌ها
+# 3. Remove files and directories
 rm -f /etc/systemd/system/nexus-tunnel@.service
 rm -f /etc/systemd/system/nexus-tunnel.service
 rm -f /usr/local/bin/nexus-tunnel
@@ -45,4 +45,4 @@ rm -rf /opt/nexus-tunnel /etc/nexus-tunnel /var/log/nexus-tunnel /run/nexus-tunn
 systemctl daemon-reload
 sysctl --system >/dev/null 2>&1 || true
 
-echo -e "${GREEN}[✔] تمام سرویس‌ها، تانل‌های L3 و فایل‌های Nexus-Tunnel به طور کامل پاک شدند.${NC}"
+echo -e "${GREEN}[✔] All Nexus-Tunnel v7.0 services, L3 interfaces, and files completely removed.${NC}"
